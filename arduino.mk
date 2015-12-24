@@ -130,6 +130,9 @@
 #              If unspecified, an attempt is made to guess the name of a
 #              connected Arduino's serial device, which may work in some cases.
 #
+# SERIALRATE   The baud rate used for serial connection when running screen with
+#							 the "monitor" target.
+#
 # SOURCES      A list of all source files of whatever language.  The language
 #              type is determined by the file extension.  This is set
 #              automatically if a .ino (or .pde) is found.
@@ -177,7 +180,8 @@ endif
 ifneq "" "$(wildcard $(ARDUINODIR)/hardware/arduino/boards.txt)"
 ARDUINOBACKENDS := /
 else ifneq "" "$(wildcard $(ARDUINODIR)/hardware/arduino/avr/boards.txt)"
-ARDUINOBACKENDS := /avr /sam
+#ARDUINOBACKENDS := /avr /sam
+ARDUINOBACKENDS := /avr
 else
 $(error ARDUINODIR is not set correctly; arduino software not found)
 endif
@@ -238,7 +242,7 @@ endif
 
 # obtain preferences from the IDE's preferences.txt
 PREFERENCESFILE := $(firstword $(wildcard \
-	$(HOME)/.arduino/preferences.txt $(HOME)/Library/Arduino/preferences.txt))
+	$(HOME)/.arduino15/preferences.txt $(HOME)/.arduino/preferences.txt $(HOME)/Library/Arduino/preferences.txt))
 ifneq "$(PREFERENCESFILE)" ""
 readpreferencesparam = $(shell sed -ne "s/$(1)=\(.*\)/\1/p" $(PREFERENCESFILE))
 SKETCHBOOKDIR := $(call readpreferencesparam,sketchbook.path)
@@ -253,7 +257,7 @@ ARDUINOBACKENDARCH=AVR
 ARDUINOCOREDIR := $(ARDUINOBACKENDDIR)/cores/$(BOARD_BUILD_CORE)
 
 # default library path (places to look for libraries)
-LIBRARYPATH ?= libraries libs $(SKETCHBOOKDIR)/libraries \
+LIBRARYPATH ?= . libraries libs $(SKETCHBOOKDIR)/libraries \
 	$(ARDUINODIR)/libraries $(ARDUINOBACKENDDIR)/libraries
 
 # auto mode?
@@ -310,7 +314,11 @@ BOOTLOADERHEX := $(addprefix \
 	$(BOARD_BOOTLOADER_FILE))
 
 # software
-BUILDTOOLSPATH ?= $(subst :, , $(PATH)) $(ARDUINODIR)/hardware/tools \
+# FIXME - commented out so only the compiler in the arduino dist is used
+# (fixing compiler error with 1.6.3)
+#BUILDTOOLSPATH ?= $(subst :, , $(PATH)) $(ARDUINODIR)/hardware/tools \
+#	$(ARDUINODIR)/hardware/tools/avr/bin
+BUILDTOOLSPATH ?= $(ARDUINODIR)/hardware/tools \
 	$(ARDUINODIR)/hardware/tools/avr/bin
 findsoftware = $(firstword $(wildcard $(addsuffix /$(1), $(BUILDTOOLSPATH))))
 CC := $(call findsoftware,avr-gcc)
@@ -333,7 +341,12 @@ SERIALDEV := $(firstword $(wildcard \
 SERIALDEVGUESS := 1
 endif
 
-# avrdude confifuration
+# default serial rate to 9600, override from command line or Makefile
+ifndef SERIALRATE
+SERIALRATE := 9600
+endif
+
+# avrdude configuration
 ifeq "$(AVRDUDECONF)" ""
 ifeq "$(AVRDUDE)" "$(ARDUINODIR)/hardware/tools/avr/bin/avrdude"
 AVRDUDECONF := $(ARDUINODIR)/hardware/tools/avr/etc/avrdude.conf
@@ -426,7 +439,7 @@ monitor:
 	@test 0 -eq $(SERIALDEVGUESS) || { \
 		echo "*GUESSING* at serial device:" $(SERIALDEV); \
 		echo; }
-	screen $(SERIALDEV)
+	screen $(SERIALDEV) $(SERIALRATE)
 
 size: $(TARGET).elf
 	echo "\n" && $(AVRSIZE) --format=avr --mcu=$(BOARD_BUILD_MCU) $(TARGET).elf
