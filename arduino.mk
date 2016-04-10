@@ -256,9 +256,12 @@ ARDUINOBACKENDDIR := $(strip $(foreach dir, $(ARDUINOBACKENDS), \
 ARDUINOBACKENDARCH=AVR
 ARDUINOCOREDIR := $(ARDUINOBACKENDDIR)/cores/$(BOARD_BUILD_CORE)
 
+# create the list of backend library directories
+BACKENDLIBS := $(wildcard $(ARDUINOBACKENDDIR)/libraries/*)
+
 # default library path (places to look for libraries)
 LIBRARYPATH ?= . libraries libs $(SKETCHBOOKDIR)/libraries \
-	$(ARDUINODIR)/libraries $(ARDUINOBACKENDDIR)/libraries
+	$(ARDUINODIR)/libraries $(BACKENDLIBS)
 
 # auto mode?
 INOFILE := $(wildcard *.ino *.pde)
@@ -289,7 +292,6 @@ LIBRARYHEADERS := $(foreach dir, $(LIBRARYPATH), \
 LIBRARYHEADERS := $(foreach dir, $(LIBRARYHEADERS), $(wildcard $(dir)/*.h))
 LIBRARYDIRS := $(foreach hdr, $(INCLUDEDHEADERS), $(patsubst %/$(hdr), %, \
 	$(firstword $(filter %/$(hdr), $(LIBRARYHEADERS)))))
-
 endif
 
 # expand LIBRARYDIRS (initialised from LIBRARIES, if specified)
